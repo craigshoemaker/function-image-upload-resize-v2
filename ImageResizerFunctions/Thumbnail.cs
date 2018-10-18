@@ -17,10 +17,10 @@ using System.Threading.Tasks;
 
 namespace ImageResizerFunctions
 {
-    public static class ThumnailFunction
+    public static class ThumbnailFunction
     {
-        static string storageAccountConnectionString = System.Environment.GetEnvironmentVariable("BLOB_STORAGE_CONNECTION_STRING");
-        static string thumbContainerName = System.Environment.GetEnvironmentVariable("THUMBNAIL_CONTAINER_NAME");
+        private static readonly string BLOB_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("BLOB_STORAGE_CONNECTION_STRING");
+        private static string ThumbContainerName = Environment.GetEnvironmentVariable("THUMBNAIL_CONTAINER_NAME");
 
         private static string GetBlobNameFromUrl(string bloblUrl)
         {
@@ -55,27 +55,24 @@ namespace ImageResizerFunctions
         }
 
         [FunctionName("Thumbnail")]
-        public static async Task Run([EventGridTrigger]EventGridEvent eventGridEvent, ILogger log)
+        public static async Task Run(
+            [EventGridTrigger]EventGridEvent eventGridEvent,
+            [Blob("{data.url}", FileAccess.Read)] Stream input, 
+            ILogger log)
         {
             var createdEvent = ((JObject)eventGridEvent.Data).ToObject<StorageBlobCreatedEventData>();
 
             int width = 100;
             int height = 100;
 
-            // Retrieve storage account from connection string.
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageAccountConnectionString);
-
-            // Create the blob client.
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-
-            // Retrieve reference to a previously created container.
-            CloudBlobContainer container = blobClient.GetContainerReference(thumbContainerName);
-
+            var storageAccount = CloudStorageAccount.Parse(BLOB_STORAGE_CONNECTION_STRING);
+            var blobClient = storageAccount.CreateCloudBlobClient();
+            var container = blobClient.GetContainerReference(ThumbContainerName);
             var blobName = GetBlobNameFromUrl(createdEvent.Url);
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(blobName);
+            var blockBlob = container.GetBlockBlobReference(blobName);
 
             using (var stream = new MemoryStream())
-            using (var image = new Bitmap(blobImageStream))
+            using (var image = new Bitmap(input))
             {
                 var extension = Path.GetExtension(createdEvent.Url);
                 var encoder = GetEncoder(extension);

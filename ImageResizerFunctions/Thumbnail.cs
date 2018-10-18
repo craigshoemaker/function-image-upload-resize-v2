@@ -1,5 +1,6 @@
 // Default URL for triggering event grid function in the local environment.
 // http://localhost:7071/runtime/webhooks/EventGrid?functionName={functionname}
+// https://{ID}.ngrok.io/runtime/webhooks/EventGrid?functionName=Thumbnail
 
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs;
@@ -20,7 +21,6 @@ namespace ImageResizerFunctions
     public static class ThumbnailFunction
     {
         private static readonly string BLOB_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("BLOB_STORAGE_CONNECTION_STRING");
-        private static string ThumbContainerName = Environment.GetEnvironmentVariable("THUMBNAIL_CONTAINER_NAME");
 
         private static string GetBlobNameFromUrl(string bloblUrl)
         {
@@ -65,9 +65,10 @@ namespace ImageResizerFunctions
             int width = 100;
             int height = 100;
 
+            var thumbContainerName = Environment.GetEnvironmentVariable("THUMBNAIL_CONTAINER_NAME");
             var storageAccount = CloudStorageAccount.Parse(BLOB_STORAGE_CONNECTION_STRING);
             var blobClient = storageAccount.CreateCloudBlobClient();
-            var container = blobClient.GetContainerReference(ThumbContainerName);
+            var container = blobClient.GetContainerReference(thumbContainerName);
             var blobName = GetBlobNameFromUrl(createdEvent.Url);
             var blockBlob = container.GetBlockBlobReference(blobName);
 
